@@ -124,7 +124,7 @@ export function ResearchWorkspace() {
               1行につき1つのURLを入力してください。
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
             <Button
               type="button"
               onClick={handleResearch}
@@ -134,9 +134,6 @@ export function ResearchWorkspace() {
               <Sparkles data-icon="inline-start" />
               {isLoading ? "取得中..." : "一括リサーチ開始"}
             </Button>
-            <p className="text-xs text-muted-foreground">
-              動画とチャンネルをそれぞれ最大50件まとめて取得
-            </p>
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {invalidUrls.length > 0 ? (
