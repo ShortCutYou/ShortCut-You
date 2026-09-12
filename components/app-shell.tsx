@@ -13,7 +13,7 @@ export function AppShell({
   children,
   contentClassName,
 }: {
-  heading: string
+  heading?: string
   subheading?: string
   children: ReactNode
   contentClassName?: string
@@ -24,13 +24,21 @@ export function AppShell({
       <SidebarInset className={contentClassName}>
         <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b border-border/50 bg-background/70 px-4 backdrop-blur-sm md:px-6">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-1 h-5" />
-          <div className="min-w-0 flex-1">
-            <h1 className="text-sm font-semibold text-foreground md:text-base">{heading}</h1>
-            {subheading ? (
-              <p className="hidden truncate text-xs text-muted-foreground sm:block">{subheading}</p>
-            ) : null}
-          </div>
+          {heading ? (
+            <>
+              <Separator orientation="vertical" className="mr-1 h-5" />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-sm font-semibold text-foreground md:text-base">{heading}</h1>
+                {subheading ? (
+                  <p className="hidden truncate text-xs text-muted-foreground sm:block">
+                    {subheading}
+                  </p>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <div className="min-w-0 flex-1" />
+          )}
           <ShareButton text={GLOBAL_SHARE_TEXT} urlMode="origin" />
         </header>
         <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
