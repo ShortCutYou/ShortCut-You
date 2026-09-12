@@ -11,7 +11,7 @@ const OG_SUBTITLE = "ログイン不要ですぐに使えるショート動画�
 const OG_NOTE = "※ブラウザ上で安全に完結します"
 
 async function loadJapaneseFont(text: string) {
-  const cssUrl = `https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&text=${encodeURIComponent(text)}`
+  const cssUrl = `https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700&text=${encodeURIComponent(text)}`
   const css = await fetch(cssUrl, {
     headers: {
       "User-Agent":
@@ -44,7 +44,7 @@ export default async function OpenGraphImage() {
           justifyContent: "space-between",
           background: "#111111",
           color: "#f5f5f5",
-          padding: "64px 72px",
+          padding: "52px 60px 48px",
           fontFamily: '"Noto Sans JP"',
         }}
       >
@@ -52,37 +52,54 @@ export default async function OpenGraphImage() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 18,
+            gap: 28,
           }}
         >
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
+              width: 108,
+              height: 108,
+              borderRadius: 28,
               background: "#0a0a0a",
-              border: "1px solid rgba(255,255,255,0.16)",
+              border: "1px solid rgba(255,255,255,0.18)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 28,
+              fontSize: 58,
               fontWeight: 700,
+              letterSpacing: "-0.06em",
             }}
           >
             S
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em" }}>
+          <div
+            style={{
+              fontSize: 72,
+              fontWeight: 700,
+              letterSpacing: "-0.06em",
+              lineHeight: 1,
+            }}
+          >
             {SITE_NAME}
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            maxWidth: 1080,
+          }}
+        >
           <div
             style={{
-              fontSize: 52,
+              display: "flex",
+              flexWrap: "wrap",
+              fontSize: 48,
               fontWeight: 700,
-              letterSpacing: "-0.04em",
-              lineHeight: 1.25,
-              maxWidth: 1000,
+              letterSpacing: "-0.03em",
+              lineHeight: 1.28,
             }}
           >
             {OG_TITLE}
@@ -90,16 +107,16 @@ export default async function OpenGraphImage() {
           <div
             style={{
               fontSize: 26,
-              color: "#a3a3a3",
-              lineHeight: 1.5,
-              maxWidth: 920,
-              fontWeight: 500,
+              color: "#b4b4b4",
+              lineHeight: 1.45,
+              fontWeight: 700,
             }}
           >
             {OG_SUBTITLE}
           </div>
         </div>
-        <div style={{ fontSize: 18, color: "#737373", fontWeight: 500 }}>{OG_NOTE}</div>
+
+        <div style={{ fontSize: 20, color: "#8a8a8a", fontWeight: 700 }}>{OG_NOTE}</div>
       </div>
     ),
     {
