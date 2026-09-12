@@ -2,11 +2,37 @@ import { ImageResponse } from "next/og"
 
 import { SITE_NAME } from "@/lib/site"
 
-export const alt = "ShortCutYou - YouTubeショート特化リサーチ & AI分析SaaS"
+export const alt = "ログイン不要ですぐに使えるYouTubeショート特化リサーチツール"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
-export default function OpenGraphImage() {
+const OG_TITLE = "YouTubeショート リサーチ ＋ AI分析"
+const OG_SUBTITLE = "ログイン不要ですぐに使えるショート動画特化ツール"
+const OG_NOTE = "※ブラウザ上で安全に完結します"
+
+async function loadJapaneseFont(text: string) {
+  const cssUrl = `https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700&text=${encodeURIComponent(text)}`
+  const css = await fetch(cssUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1",
+    },
+  }).then((res) => res.text())
+  const match = css.match(/src: url\((.+?)\) format\('(opentype|truetype|woff2|woff)'\)/)
+  if (!match?.[1]) {
+    throw new Error("日本語フォントのURLを取得できませんでした。")
+  }
+  const fontRes = await fetch(match[1])
+  if (!fontRes.ok) {
+    throw new Error("日本語フォントの読み込みに失敗しました。")
+  }
+  return fontRes.arrayBuffer()
+}
+
+export default async function OpenGraphImage() {
+  const fontText = `${SITE_NAME}${OG_TITLE}${OG_SUBTITLE}${OG_NOTE}`
+  const fontData = await loadJapaneseFont(fontText)
+
   return new ImageResponse(
     (
       <div
@@ -19,6 +45,7 @@ export default function OpenGraphImage() {
           background: "#111111",
           color: "#f5f5f5",
           padding: "64px 72px",
+          fontFamily: '"Noto Sans JP"',
         }}
       >
         <div
@@ -44,36 +71,47 @@ export default function OpenGraphImage() {
           >
             S
           </div>
-          <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.04em" }}>
+          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.04em" }}>
             {SITE_NAME}
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div
             style={{
-              fontSize: 58,
+              fontSize: 52,
               fontWeight: 700,
-              letterSpacing: "-0.05em",
-              lineHeight: 1.15,
-              maxWidth: 980,
+              letterSpacing: "-0.04em",
+              lineHeight: 1.25,
+              maxWidth: 1000,
             }}
           >
-            YouTube Shorts research + AI analysis
+            {OG_TITLE}
           </div>
           <div
             style={{
               fontSize: 26,
               color: "#a3a3a3",
-              lineHeight: 1.45,
-              maxWidth: 900,
+              lineHeight: 1.5,
+              maxWidth: 920,
+              fontWeight: 500,
             }}
           >
-            Privacy-first YouTube Shorts research. Your API keys stay in the browser.
+            {OG_SUBTITLE}
           </div>
         </div>
-        <div style={{ fontSize: 20, color: "#737373" }}>No login. API keys stay in your browser.</div>
+        <div style={{ fontSize: 18, color: "#737373", fontWeight: 500 }}>{OG_NOTE}</div>
       </div>
     ),
-    size
+    {
+      ...size,
+      fonts: [
+        {
+          name: "Noto Sans JP",
+          data: fontData,
+          style: "normal",
+          weight: 700,
+        },
+      ],
+    }
   )
 }

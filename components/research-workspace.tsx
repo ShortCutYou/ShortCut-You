@@ -135,7 +135,7 @@ export function ResearchWorkspace() {
               {isLoading ? "取得中..." : "一括リサーチ開始"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              動画とチャンネルをそれぞれ最大50件まとめて取得（クォータ節約）
+              動画とチャンネルをそれぞれ最大50件まとめて取得
             </p>
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
