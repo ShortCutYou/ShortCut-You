@@ -11,7 +11,6 @@ import {
 
 import type { AnalyzeVideoInput, BuzzAnalysis } from "@/lib/ai-analysis"
 import { fetchWithClientApiKeys } from "@/lib/client-settings"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -28,14 +27,6 @@ const loadingHints = [
   "真似できる型を抽出しています…",
 ]
 
-function SourceBadge({ model }: { source: BuzzAnalysis["source"]; model?: string }) {
-  return (
-    <Badge variant="secondary">
-      Gemini{model ? ` · ${model}` : ""}
-    </Badge>
-  )
-}
-
 function AnalysisResults({ analysis }: { analysis: BuzzAnalysis }) {
   const beats = analysis.structure?.beats ?? []
   const insights = analysis.creatorInsights ?? []
@@ -46,12 +37,9 @@ function AnalysisResults({ analysis }: { analysis: BuzzAnalysis }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-xl bg-background/60 p-4 ring-1 ring-foreground/10">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            総評
-          </p>
-          <SourceBadge source={analysis.source} model={analysis.model} />
-        </div>
+        <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          総評
+        </p>
         <p className="text-sm leading-relaxed text-foreground">{analysis.summary}</p>
       </div>
 
