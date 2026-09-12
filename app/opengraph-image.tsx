@@ -8,7 +8,6 @@ export const contentType = "image/png"
 
 const OG_TITLE = "YouTubeショート リサーチ ＋ AI分析"
 const OG_SUBTITLE = "ログイン不要ですぐに使えるショート動画特化ツール"
-const OG_NOTE = "※ブラウザ上で安全に完結します"
 
 async function loadJapaneseFont(text: string) {
   const cssUrl = `https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700&text=${encodeURIComponent(text)}`
@@ -30,7 +29,7 @@ async function loadJapaneseFont(text: string) {
 }
 
 export default async function OpenGraphImage() {
-  const fontText = `${SITE_NAME}${OG_TITLE}${OG_SUBTITLE}${OG_NOTE}`
+  const fontText = `${SITE_NAME}${OG_TITLE}${OG_SUBTITLE}`
   const fontData = await loadJapaneseFont(fontText)
 
   return new ImageResponse(
@@ -115,8 +114,7 @@ export default async function OpenGraphImage() {
             {OG_SUBTITLE}
           </div>
         </div>
-
-        <div style={{ fontSize: 20, color: "#8a8a8a", fontWeight: 700 }}>{OG_NOTE}</div>
+        <div style={{ height: 28 }} />
       </div>
     ),
     {
