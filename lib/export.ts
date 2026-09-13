@@ -149,19 +149,11 @@ function videoTableHtml(videos: YoutubeVideo[]) {
 
 function analysisHtml(analysis: BuzzAnalysis) {
   const beats = analysis.structure?.beats ?? []
-  const ideas = analysis.ideaTemplates ?? []
 
   const beatHtml = beats
     .map(
       (beat) =>
         `<div class="beat"><strong>${emphasisHtml(beat.label ?? "")}</strong><p>${emphasisHtml(beat.detail ?? "")}</p></div>`
-    )
-    .join("")
-
-  const ideaHtml = ideas
-    .map(
-      (idea) =>
-        `<div class="idea"><strong>${emphasisHtml(idea.title ?? "")}</strong><p>${emphasisHtml(idea.outline ?? "")}</p></div>`
     )
     .join("")
 
@@ -208,8 +200,6 @@ function analysisHtml(analysis: BuzzAnalysis) {
       ${listHtml(analysis.whyItGrew ?? [])}
       <h3>真似できるポイント</h3>
       ${listHtml(analysis.copyablePoints ?? [])}
-      <h3>構成のフレームワーク</h3>
-      ${ideaHtml || "<p class='muted'>なし</p>"}
     </section>
   `
 }

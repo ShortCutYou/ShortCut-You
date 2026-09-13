@@ -18,6 +18,8 @@ export type AnalyzeVideoInput = {
   subscriberCount?: string
   channelVideoCount?: string
   channelViewCount?: string
+  categoryId?: string
+  categoryName?: string
   hiddenSubscribers?: boolean
 }
 
@@ -34,7 +36,6 @@ export type BuzzAnalysis = {
   whyItGrew: string[]
   copyablePoints: string[]
   creatorInsights: string[]
-  ideaTemplates: { title: string; outline: string }[]
   performance?: PerformanceBoard
   statComments?: StatComments
   source: "gemini"
@@ -65,8 +66,7 @@ const ANALYSIS_JSON_SHAPE = `{
     "beats": [
       { "label": "冒頭のフック構造", "detail": "最初に何のギャップ/約束を置く型か。要点1-2文。台本禁止" },
       { "label": "中盤のテンポ", "detail": "情報の出し方・切替えの型。要点1-2文。台本禁止" },
-      { "label": "オチの抜け感", "detail": "回収・余韻・再視聴を誘う型。要点1-2文。台本禁止" },
-      { "label": "ジャンル転用", "detail": "別ジャンルでも同じ骨格で回すときの置き換え方。1-2文" }
+      { "label": "オチの抜け感", "detail": "回収・余韻・再視聴を誘う型。要点1-2文。台本禁止" }
     ]
   },
   "whyItGrew": [
@@ -75,24 +75,14 @@ const ANALYSIS_JSON_SHAPE = `{
     "尺と維持トリックの因果を1文"
   ],
   "copyablePoints": [
-    "構成テンプレとして抜き出せる型を1つ、ジャンル非依存で",
+    "この動画から抜き出せる再現ポイントを1つ",
     "中盤のテンポの型を自分の題材に置き換える要点",
     "オチ/余韻の型を転用するときの注意点"
   ],
   "creatorInsights": [
-    "この骨格を自分のジャンルに当てはめるときの置換表（題材だけ変える）",
+    "次の1本で伸ばすための具体的な判断基準",
     "型を崩すと失う要素（フック/テンポ/抜け）",
-    "次の企画で同じフレームワークを使う判断基準"
-  ],
-  "ideaTemplates": [
-    {
-      "title": "構成テンプレ名（例: 常識否定→根拠3拍→逆転）",
-      "outline": "フック/中盤/オチの役割を3行以内の要点。セリフ・秒数台本は禁止。自分のジャンルへの当てはめ方を1文"
-    },
-    {
-      "title": "別の切り口のテンプレ名",
-      "outline": "同じ骨格の応用バリエーション。台本禁止、要点のみ"
-    }
+    "コメントや保存を伸ばすための実務的な一手"
   ],
   "performance": {
     "buzzPotential": 0,
@@ -107,7 +97,7 @@ const ANALYSIS_JSON_SHAPE = `{
     "engagement": "EG率のひとこと(20-30字)",
     "likeRate": "高評価率のひとこと(20-30字)",
     "favorites": "お気に入りのひとこと(20-30字)",
-    "category": "カテゴリのひとこと(20-30字)",
+    "category": "ジャンル名に触れたひとこと(20-30字。ID番号だけは禁止)",
     "subscribers": "登録者規模のひとこと(20-30字)",
     "videoCount": "投稿本数のひとこと(20-30字)",
     "channelViews": "チャンネル総再生のひとこと(20-30字)"
@@ -177,17 +167,6 @@ function normalizeAnalysis(parsed: Record<string, unknown>, model: string): Buzz
         })
         .filter((beat) => beat.label || beat.detail)
     : []
-  const ideaTemplates = Array.isArray(parsed.ideaTemplates)
-    ? parsed.ideaTemplates
-        .map((idea) => {
-          const item = (idea ?? {}) as Record<string, unknown>
-          return {
-            title: asText(item.title),
-            outline: asText(item.outline),
-          }
-        })
-        .filter((idea) => idea.title || idea.outline)
-    : []
 
   const analysis: BuzzAnalysis = {
     summary: asText(parsed.summary),
@@ -202,7 +181,6 @@ function normalizeAnalysis(parsed: Record<string, unknown>, model: string): Buzz
     whyItGrew: asTextList(parsed.whyItGrew),
     copyablePoints: asTextList(parsed.copyablePoints),
     creatorInsights: asTextList(parsed.creatorInsights),
-    ideaTemplates,
     performance: (() => {
       try {
         return parsePerformanceFromGemini(parsed)
@@ -268,6 +246,7 @@ function buildPrompt(input: AnalyzeVideoInput) {
 - 公開日: ${input.publishedAt || "-"}
 - タグ: ${(input.tags ?? []).slice(0, 12).join(", ") || "なし"}
 - 説明文: ${(input.description ?? "").slice(0, 500) || "なし"}
+- 動画カテゴリ: ${input.categoryName ?? "不明"}（ID: ${input.categoryId ?? "-"}）
 
 出力はJSONのみ。前置きやコードフェンスは禁止。
 JSONの外にMarkdownを書かないこと。
@@ -279,22 +258,22 @@ JSONの外にMarkdownを書かないこと。
 
 【フィールド別の深さ】
 - hook.analysis: 冒頭で置くギャップ/約束の型。秒割り台本は書かない。
-- structure.beats: 4拍。labelは「冒頭のフック構造」「中盤のテンポ」「オチの抜け感」「ジャンル転用」。detailは要点1-2文。セリフ禁止。
+- structure.beats: 3拍。labelは「冒頭のフック構造」「中盤のテンポ」「オチの抜け感」。detailは要点1-2文。セリフ禁止。架空の企画テンプレは出さない。
 - whyItGrew: 3件以上。うち1件はアルゴリズム、1件は心理フック、1件は構成の型。
-- copyablePoints: 3件以上。撮影台本ではなく、構成テンプレの抜き出しと転用手順。
-- creatorInsights: 自分のジャンルへ骨格を当てはめる置換の仕方。心構えだけの文は不可。
-- ideaTemplates: 2件。titleはテンプレ名。outlineはフック/中盤/オチの役割と転用の要点のみ。台本・秒数書き出し禁止。
+- copyablePoints: 3件以上。この動画から再現できる要点。架空テンプレの列挙は禁止。
+- creatorInsights: 次の改善に使える実務的な示唆。心構えだけの文は不可。
 - performance と statComments: 実数に触れ、ショートとしての良し悪しを短く。
 
 次の6点を必ず含めてください。
 1. 冒頭フックの分析（構造の型）
-2. 構成のフレームワーク（フック/テンポ/オチ/転用）
-3. クリエイターへの示唆（ジャンル転用）
+2. この動画の構成の要点（フック/テンポ/オチ）
+3. クリエイターへの示唆
 4. なぜ伸びたのか（アルゴリズム×心理×型）
 5. performance スコア（0-100の整数）
    - buzzPotential / momentum / retention / ctr
    各scoreのnoteはこの動画の数値に触れる。
 6. statComments（各20〜30文字、実数に触れる）
+   category はジャンル名（例: 音楽、ゲーム）で語り、ID番号だけの言及は禁止。
 ${ANALYSIS_JSON_SHAPE}`
 }
 
@@ -320,25 +299,51 @@ type GeminiResponse = {
   candidates?: { content?: { parts?: { text?: string }[] } }[]
 }
 
-export const GEMINI_REQUEST_TIMEOUT_MS = 60_000
+/** 1回あたりの上限。3回＋1秒・3秒待機がルート 180 秒内に収まるよう 50 秒。 */
+export const GEMINI_REQUEST_TIMEOUT_MS = 50_000
+const MAX_GEMINI_ATTEMPTS = 3
+/** 失敗後の待機: 1秒 → 3秒 */
+const GEMINI_RETRY_DELAYS_MS = [1_000, 3_000]
 export const USER_RETRY_MESSAGE =
-  "AI分析が時間切れになりました。ページを再読み込みするか、もう一度お試しください。"
+  "サーバー側で自動再試行しましたが、分析が時間切れになりました。20〜30秒待ってから「再分析する」を押してください。"
 export const USER_BUSY_MESSAGE =
-  "ただいま混み合っています。少し待ってから、もう一度お試しください。"
+  "サーバー側で自動再試行しましたが、まだ混雑が続いています。20〜30秒待ってから「再分析する」を押してください。"
+
+class GeminiRequestError extends Error {
+  status?: number
+  retryAfterMs?: number
+
+  constructor(message: string, status?: number, retryAfterMs?: number) {
+    super(message)
+    this.name = "GeminiRequestError"
+    this.status = status
+    this.retryAfterMs = retryAfterMs
+  }
+}
 
 function isTimeoutError(error: unknown) {
   if (!(error instanceof Error)) return false
   return (
     error.name === "TimeoutError" ||
     error.name === "AbortError" ||
-    /aborted due to timeout|the operation was aborted|timeout/i.test(error.message)
+    /aborted due to timeout|the operation was aborted|timed out|timeout/i.test(error.message)
   )
 }
 
 function isBusyGeminiError(message: string, status?: number) {
   if (status === 429 || status === 503) return true
-  return /high demand|unavailable|try again|overloaded|resource exhausted|quota/i.test(
+  return /429|503|high demand|unavailable|try again|overloaded|resource.?exhausted|quota|rate.?limit|too many requests|busy|capacity/i.test(
     message
+  )
+}
+
+function isTransientGeminiError(error: Error, status?: number) {
+  if (status === 400 || status === 401 || status === 403) return false
+  if (isTimeoutError(error) || status === 504) return true
+  if (status === 429 || status === 500 || status === 502 || status === 503) return true
+  if (isBusyGeminiError(error.message, status)) return true
+  return /本文が返りませんでした|JSON ではありませんでした|unexpected end|network|fetch failed|ECONNRESET|ETIMEDOUT/i.test(
+    error.message
   )
 }
 
@@ -346,17 +351,31 @@ function toUserFacingError(error: Error, status?: number) {
   const wrapped = new Error(
     isTimeoutError(error) || status === 504
       ? USER_RETRY_MESSAGE
-      : isBusyGeminiError(error.message, status)
+      : isBusyGeminiError(error.message, status) || isTransientGeminiError(error, status)
         ? USER_BUSY_MESSAGE
         : error.message || USER_BUSY_MESSAGE
-  ) as Error & { status?: number }
+  ) as Error & { status?: number; retryable?: boolean }
   wrapped.status = status ?? (isTimeoutError(error) ? 504 : 503)
+  wrapped.retryable = wrapped.status === 429 || wrapped.status === 503 || wrapped.status === 504
   return wrapped
 }
 
 function isUnknownModelError(message: string, status?: number) {
   if (status === 404) return true
   return /not found|not supported|unknown model/i.test(message)
+}
+
+function parseRetryAfterMs(header: string | null) {
+  if (!header) return undefined
+  const seconds = Number(header)
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.min(Math.round(seconds * 1000), 8_000)
+  }
+  return undefined
+}
+
+function errorStatus(error: Error) {
+  return "status" in error && typeof error.status === "number" ? error.status : undefined
 }
 
 async function requestGemini(model: string, apiKey: string, prompt: string) {
@@ -383,20 +402,30 @@ async function requestGemini(model: string, apiKey: string, prompt: string) {
     )
   } catch (error) {
     if (isTimeoutError(error)) {
-      const timeoutError = new Error(USER_RETRY_MESSAGE) as Error & { status?: number }
-      timeoutError.status = 504
-      throw timeoutError
+      throw new GeminiRequestError(USER_RETRY_MESSAGE, 504)
     }
     throw error
   }
 
-  const body = (await response.json()) as GeminiResponse
+  const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"))
+  const rawBody = await response.text()
+  let body: GeminiResponse = {}
+  try {
+    body = rawBody ? (JSON.parse(rawBody) as GeminiResponse) : {}
+  } catch {
+    throw new GeminiRequestError(
+      rawBody ? "Gemini の応答が JSON ではありませんでした。" : "Gemini から本文が返りませんでした。",
+      response.status || 503,
+      retryAfterMs
+    )
+  }
+
   if (!response.ok) {
-    const error = new Error(
-      body.error?.message ?? `Gemini API の呼び出しに失敗しました。（${model}）`
-    ) as Error & { status?: number }
-    error.status = response.status
-    throw error
+    throw new GeminiRequestError(
+      body.error?.message ?? `Gemini API の呼び出しに失敗しました。（${model}）`,
+      response.status,
+      retryAfterMs
+    )
   }
 
   const text =
@@ -405,7 +434,7 @@ async function requestGemini(model: string, apiKey: string, prompt: string) {
       .filter(Boolean)
       .join("") ?? ""
   if (!text) {
-    throw new Error("Gemini から本文が返りませんでした。")
+    throw new GeminiRequestError("Gemini から本文が返りませんでした。", 503, retryAfterMs)
   }
   return text
 }
@@ -431,38 +460,41 @@ export async function generateBuzzAnalysis(
 
   const prompt = buildPrompt(input)
   let lastError: Error | null = null
-  const maxAttempts = 3
+  let failures = 0
 
   for (const model of geminiModels()) {
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    while (failures < MAX_GEMINI_ATTEMPTS) {
       try {
         const text = await requestGemini(model, apiKey, prompt)
         const parsed = extractJsonObject(text)
         if (!parsed) {
-          throw new Error("Gemini の応答が JSON ではありませんでした。")
+          throw new GeminiRequestError("Gemini の応答が JSON ではありませんでした。", 503)
         }
         return normalizeAnalysis(parsed, model)
       } catch (error) {
-        if (isTimeoutError(error)) {
-          throw toUserFacingError(
-            error instanceof Error ? error : new Error(USER_RETRY_MESSAGE),
-            504
-          )
-        }
-
         const failed = error instanceof Error ? error : new Error(USER_BUSY_MESSAGE)
-        const status =
-          "status" in failed && typeof failed.status === "number" ? failed.status : undefined
-        lastError = toUserFacingError(failed, status)
+        const status = errorStatus(failed)
 
         if (isUnknownModelError(failed.message, status)) {
+          lastError = toUserFacingError(failed, status)
           break
         }
-        if (isBusyGeminiError(failed.message, status) && attempt < maxAttempts) {
-          await wait(2000 * 2 ** (attempt - 1))
-          continue
+
+        const transient = isTransientGeminiError(failed, status)
+        lastError = toUserFacingError(failed, status)
+
+        if (!transient) {
+          throw lastError
         }
-        throw lastError
+
+        failures += 1
+        if (failures >= MAX_GEMINI_ATTEMPTS) {
+          break
+        }
+
+        const scheduled = GEMINI_RETRY_DELAYS_MS[failures - 1] ?? 3_000
+        const retryAfter = failed instanceof GeminiRequestError ? failed.retryAfterMs : undefined
+        await wait(Math.max(scheduled, retryAfter ?? 0))
       }
     }
   }

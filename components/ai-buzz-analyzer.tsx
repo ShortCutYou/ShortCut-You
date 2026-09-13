@@ -6,7 +6,6 @@ import {
   Lightbulb,
   LoaderCircle,
   Sparkles,
-  Target,
 } from "lucide-react"
 
 import type { AnalyzeVideoInput, BuzzAnalysis } from "@/lib/ai-analysis"
@@ -22,10 +21,13 @@ import {
 import { AnalysisText } from "@/components/analysis-text"
 import { SafeBoundary } from "@/components/safe-boundary"
 
+const ANALYZE_CLIENT_TIMEOUT_MS = 180_000
+
 const loadingHints = [
   "冒頭3秒のフックを分解しています…",
   "再生数と高評価のバランスを読み解いています…",
   "真似できる型を抽出しています…",
+  "混雑時は自動で再試行しています…",
 ]
 
 function asStringList(value: unknown) {
@@ -57,7 +59,6 @@ function AnalysisResults({ analysis }: { analysis: BuzzAnalysis }) {
   const insights = asStringList(analysis.creatorInsights)
   const whyItGrew = asStringList(analysis.whyItGrew)
   const copyablePoints = asStringList(analysis.copyablePoints)
-  const ideaTemplates = Array.isArray(analysis.ideaTemplates) ? analysis.ideaTemplates : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -156,36 +157,6 @@ function AnalysisResults({ analysis }: { analysis: BuzzAnalysis }) {
           </CardContent>
         </Card>
       </div>
-
-      <Card size="sm" className="border-zinc-800 bg-zinc-950/70">
-        <CardHeader>
-          <CardDescription className="flex items-center gap-1.5">
-            <Target className="size-3.5" />
-            構成のフレームワーク
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          {ideaTemplates.map((idea, index) => (
-            <div
-              key={`${idea?.title ?? "idea"}-${index}`}
-              className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3"
-            >
-              <p className="text-[11px] font-medium tracking-wide text-zinc-500">
-                構成テンプレ {index + 1}
-              </p>
-              <p className="mt-1 font-medium text-zinc-100">
-                <AnalysisText text={idea?.title} />
-              </p>
-              <p className="mt-2 text-[11px] font-medium text-zinc-500">転用の要点</p>
-              <AnalysisText
-                as="p"
-                className="mt-1 text-sm leading-relaxed text-zinc-400"
-                text={idea?.outline}
-              />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
     </div>
   )
 }
@@ -211,7 +182,7 @@ export function AiBuzzAnalyzer({
     }, 900)
 
     const controller = new AbortController()
-    const timeoutId = window.setTimeout(() => controller.abort(), 120_000)
+    const timeoutId = window.setTimeout(() => controller.abort(), ANALYZE_CLIENT_TIMEOUT_MS)
 
     try {
       const response = await fetchWithClientApiKeys("/api/analyze", {
@@ -223,9 +194,15 @@ export function AiBuzzAnalyzer({
       const data = (await response.json()) as {
         analysis?: BuzzAnalysis
         error?: string
+        retryable?: boolean
       }
       if (!response.ok || !data.analysis) {
-        setError(data.error ?? "AI分析に失敗しました。もう一度お試しください。")
+        setError(
+          data.error ??
+            (data.retryable
+              ? "混雑が続いています。少し待ってから「再分析する」を押してください。"
+              : "AI分析に失敗しました。もう一度お試しください。")
+        )
         return
       }
       try {
@@ -239,8 +216,8 @@ export function AiBuzzAnalyzer({
         error instanceof Error && error.name === "AbortError"
       setError(
         timedOut
-          ? "AI分析が時間切れになりました。もう一度お試しください。"
-          : "通信に失敗しました。もう一度お試しください。"
+          ? "AI分析が時間切れになりました。20〜30秒待ってから「再分析する」を押してください。"
+          : "通信に失敗しました。接続を確認し、「再分析する」を押してください。"
       )
     } finally {
       window.clearTimeout(timeoutId)
@@ -289,7 +266,7 @@ export function AiBuzzAnalyzer({
           <div className="flex flex-col gap-2">
             <p className="text-sm text-destructive">{error}</p>
             <p className="text-xs text-muted-foreground">
-              混雑しているときは、数秒待って「再分析する」を押すか、ページを再読み込みしてください。
+              混雑や一時エラーはサーバー側で最大3回まで自動再試行しています。続く場合は20〜30秒待ってから「再分析する」を押してください。
             </p>
           </div>
         ) : null}

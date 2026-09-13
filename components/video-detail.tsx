@@ -23,7 +23,7 @@ import {
   formatPublishedAt,
   videoThumbnailUrl,
 } from "@/lib/format-stats"
-import type { YoutubeVideo } from "@/lib/youtube"
+import { formatYoutubeCategory } from "@/lib/youtube-categories"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
@@ -83,6 +83,7 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
     .slice(0, 16)
   const videoTags = (video.snippet?.tags ?? []).slice(0, 10)
   const comments = analysis?.statComments
+  const category = formatYoutubeCategory(video.snippet?.categoryId)
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -217,6 +218,8 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
           channelVideoCount: channel?.statistics?.videoCount,
           channelViewCount: channel?.statistics?.viewCount,
             hiddenSubscribers: channel?.statistics?.hiddenSubscriberCount === true,
+            categoryId: video.snippet?.categoryId,
+            categoryName: category.name === "-" ? undefined : category.name,
           }}
           onAnalysisChange={setAnalysis}
         />
@@ -243,8 +246,11 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
             <AiStatNote text={comments?.favorites} />
           </div>
           <div>
-            <p className="text-xs text-zinc-400">カテゴリ ID</p>
-            <p className="text-sm font-medium">{video.snippet?.categoryId ?? "-"}</p>
+            <p className="text-xs text-zinc-400">カテゴリ</p>
+            <p className="text-sm font-medium text-zinc-100">{category.name}</p>
+            {category.id ? (
+              <p className="mt-0.5 text-[11px] text-zinc-500">ID: {category.id}</p>
+            ) : null}
             <AiStatNote text={comments?.category} />
           </div>
         </CardContent>

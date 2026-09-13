@@ -9,7 +9,8 @@ import {
 import { resolveGeminiApiKey } from "@/lib/api-keys"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 120
+/** 3回リトライ（50秒×3 + 1秒 + 3秒）が収まるよう延長 */
+export const maxDuration = 180
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : ""
@@ -41,6 +42,8 @@ function parseInput(payload: unknown): AnalyzeVideoInput | null {
     subscriberCount: asString(body.subscriberCount) || undefined,
     channelVideoCount: asString(body.channelVideoCount) || undefined,
     channelViewCount: asString(body.channelViewCount) || undefined,
+    categoryId: asString(body.categoryId) || undefined,
+    categoryName: asString(body.categoryName) || undefined,
     hiddenSubscribers: body.hiddenSubscribers === true,
   }
 }
@@ -70,14 +73,21 @@ export async function POST(request: Request) {
         ? error.status
         : 503
     const timedOut = statusCode === 504
-    const busy = statusCode === 429 || statusCode === 503
+    const retryable = statusCode === 429 || statusCode === 503 || statusCode === 504
     const message = timedOut
       ? USER_RETRY_MESSAGE
-      : busy
+      : retryable
         ? USER_BUSY_MESSAGE
         : error instanceof Error
           ? error.message
           : USER_BUSY_MESSAGE
-    return NextResponse.json({ error: message }, { status: timedOut ? 504 : statusCode })
+    return NextResponse.json(
+      {
+        error: message,
+        retryable,
+        retryAfterSeconds: retryable ? 25 : undefined,
+      },
+      { status: timedOut ? 504 : statusCode }
+    )
   }
 }
