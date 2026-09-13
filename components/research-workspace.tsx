@@ -6,6 +6,7 @@ import { Inbox, Link2, Sparkles } from "lucide-react"
 
 import { fetchWithClientApiKeys } from "@/lib/client-settings"
 import { saveResearchHistory, getResearchHistoryEntry, toYoutubeVideos } from "@/lib/research-history"
+import { formatCountJa } from "@/lib/format-stats"
 import type { YoutubeVideo, YoutubeVideosApiResponse } from "@/lib/youtube"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,13 +23,26 @@ import { ResearchResultsTable } from "@/components/research-results-table"
 import { ExportMenu } from "@/components/export-menu"
 
 const researchCardClass =
-  "rounded-lg border-0 bg-white ring-1 ring-black/5 shadow-sm dark:bg-zinc-900/90 dark:ring-white/8 dark:shadow-sm"
+  "rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 shadow-sm shadow-black/40"
 
 function splitUrls(value: string) {
   return value
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
+}
+
+function summarizeVideos(videos: YoutubeVideo[]) {
+  let views = 0
+  let likes = 0
+  let comments = 0
+  for (const video of videos) {
+    views += Number(video.statistics?.viewCount) || 0
+    likes += Number(video.statistics?.likeCount) || 0
+    comments += Number(video.statistics?.commentCount) || 0
+  }
+  const engagement = views > 0 ? ((likes + comments) / views) * 100 : 0
+  return { count: videos.length, views, likes, engagement }
 }
 
 export function ResearchWorkspace() {
@@ -95,6 +109,7 @@ export function ResearchWorkspace() {
   }
 
   const urlCount = splitUrls(urlText).length
+  const summary = videos && videos.length > 0 ? summarizeVideos(videos) : null
 
   return (
     <>
@@ -117,9 +132,9 @@ export function ResearchWorkspace() {
               placeholder={
                 "https://youtube.com/shorts/xxxxxxxxxxx\nhttps://youtube.com/shorts/yyyyyyyyyyy"
               }
-              className="min-h-32"
+              className="min-h-32 border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-500"
             />
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-xs text-zinc-400">
               <Link2 className="size-3.5" />
               1行につき1つのURLを入力してください。
             </p>
@@ -129,7 +144,7 @@ export function ResearchWorkspace() {
               type="button"
               onClick={handleResearch}
               disabled={isLoading || urlCount === 0}
-              className="transition-all hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 disabled:translate-y-0 disabled:hover:shadow-none"
+              className="bg-blue-600 text-white transition-all hover:-translate-y-0.5 hover:bg-blue-500 hover:text-white hover:shadow-sm active:translate-y-0 disabled:translate-y-0 disabled:hover:shadow-none"
             >
               <Sparkles data-icon="inline-start" />
               {isLoading ? "取得中..." : "一括リサーチ開始"}
@@ -167,16 +182,51 @@ export function ResearchWorkspace() {
         </CardHeader>
         <CardContent>
           {notFoundIds.length > 0 ? (
-            <p className="mb-3 text-sm text-muted-foreground">
+            <p className="mb-3 text-sm text-zinc-400">
               見つからなかった ID: {notFoundIds.join(", ")}
             </p>
           ) : null}
-          {videos && videos.length > 0 ? (
-            <ResearchResultsTable videos={videos} />
+          {videos && videos.length > 0 && summary ? (
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 shadow-sm shadow-black/20">
+                  <p className="text-xs text-zinc-400">取得件数</p>
+                  <p className="mt-1 text-lg font-semibold text-zinc-100">
+                    {summary.count} 件
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 shadow-sm shadow-black/20">
+                  <p className="text-xs text-zinc-400">合計再生数</p>
+                  <p className="mt-1 text-lg font-semibold text-zinc-100">
+                    {formatCountJa(summary.views)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 shadow-sm shadow-black/20">
+                  <p className="text-xs text-zinc-400">合計高評価</p>
+                  <p className="mt-1 text-lg font-semibold text-zinc-100">
+                    {formatCountJa(summary.likes)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 shadow-sm shadow-black/20">
+                  <p className="text-xs text-zinc-400">平均EG率</p>
+                  <p className="mt-1 text-lg font-semibold text-zinc-100">
+                    {summary.engagement.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-zinc-800">
+                <ResearchResultsTable videos={videos} />
+              </div>
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-              <Inbox className="size-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">まだ結果はありません。</p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 py-12 text-center">
+                <Inbox className="size-5 text-zinc-400" />
+                <p className="text-sm text-zinc-400">まだ結果はありません。</p>
+              </div>
+              <div className="hidden rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-12 md:flex md:flex-col md:items-center md:justify-center">
+                <p className="text-sm text-zinc-500">スコアボードは分析後に表示されます</p>
+              </div>
             </div>
           )}
         </CardContent>

@@ -7,6 +7,8 @@ import { ArrowLeft, Eye, MessageCircle, ThumbsUp, Users, Video } from "lucide-re
 
 import { AiBuzzAnalyzer } from "@/components/ai-buzz-analyzer"
 import { ExportMenu } from "@/components/export-menu"
+import { PerformanceScoreboard } from "@/components/performance-scoreboard"
+import { SafeBoundary } from "@/components/safe-boundary"
 import { ShareButton } from "@/components/share-button"
 import type { BuzzAnalysis } from "@/lib/ai-analysis"
 import { exportStamp } from "@/lib/export"
@@ -38,21 +40,31 @@ function StatCard({
   label,
   value,
   icon,
+  note,
 }: {
   label: string
   value: string
   icon: ReactNode
+  note?: string
 }) {
   return (
-    <Card size="sm">
-      <CardHeader className="pb-0">
-        <CardDescription className="flex items-center gap-1.5">
-          {icon}
-          {label}
-        </CardDescription>
-        <CardTitle className="text-lg">{value}</CardTitle>
-      </CardHeader>
-    </Card>
+    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-3 shadow-sm shadow-black/20">
+      <p className="flex items-center gap-1.5 text-[11px] tracking-wide text-zinc-400">
+        {icon}
+        {label}
+      </p>
+      <p className="mt-1.5 text-lg font-semibold tabular-nums text-zinc-100">{value}</p>
+      <AiStatNote text={note} />
+    </div>
+  )
+}
+
+function AiStatNote({ text }: { text?: string }) {
+  if (!text) return null
+  return (
+    <p className="mt-1.5 text-xs leading-relaxed text-zinc-400 bg-zinc-900/50 px-2.5 py-1.5 rounded-md">
+      {text}
+    </p>
   )
 }
 
@@ -69,9 +81,11 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
     ?.split(/\s+/)
     .filter(Boolean)
     .slice(0, 16)
+  const videoTags = (video.snippet?.tags ?? []).slice(0, 10)
+  const comments = analysis?.statComments
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
           <ArrowLeft data-icon="inline-start" />
@@ -96,27 +110,39 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <Card className="overflow-hidden py-0">
-          <div className="aspect-video bg-muted">
+      <div className="grid gap-5 lg:grid-cols-[minmax(240px,2fr)_minmax(0,3fr)] lg:items-stretch">
+        <Card className="h-full min-h-0 overflow-hidden border-zinc-800 bg-zinc-900 py-0">
+          <div className="relative aspect-[4/5] min-h-64 flex-1 overflow-hidden bg-zinc-950 sm:min-h-80 lg:aspect-auto">
             {thumb ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={thumb} alt="" className="size-full object-cover" />
+              <img src={thumb} alt="" className="absolute inset-0 size-full object-cover" />
             ) : null}
           </div>
         </Card>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-4">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
+            <h2 className="text-xl font-semibold tracking-tight text-zinc-100 md:text-2xl">
               {video.snippet?.title ?? "(無題)"}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-zinc-400">
               公開日 {formatPublishedAt(video.snippet?.publishedAt)} / 尺{" "}
               {formatIso8601Duration(video.contentDetails?.duration)}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex items-center gap-3">
+            <Avatar size="sm">
+              {channelIcon ? <AvatarImage src={channelIcon} alt="" /> : null}
+              <AvatarFallback>{channelName.slice(0, 1)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-zinc-100">{channelName}</p>
+              <p className="truncate text-xs text-zinc-400">登録者 {subscribers}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
             {video.contentDetails?.definition ? (
               <Badge variant="secondary">
                 {video.contentDetails.definition.toUpperCase()}
@@ -130,77 +156,96 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
             {video.contentDetails?.licensedContent ? (
               <Badge variant="secondary">ライセンス済み</Badge>
             ) : null}
+            {videoTags.map((tag, index) => (
+              <Badge key={`${tag}-${index}`} variant="outline" className="max-w-40 truncate">
+                {tag}
+              </Badge>
+            ))}
           </div>
+
+          <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <StatCard
+              label="再生数"
+              value={formatCountJa(video.statistics?.viewCount)}
+              icon={<Eye className="size-3.5" />}
+              note={comments?.views}
+            />
+            <StatCard
+              label="高評価"
+              value={formatCountJa(video.statistics?.likeCount)}
+              icon={<ThumbsUp className="size-3.5" />}
+              note={comments?.likes}
+            />
+            <StatCard
+              label="コメント"
+              value={formatCountJa(video.statistics?.commentCount)}
+              icon={<MessageCircle className="size-3.5" />}
+              note={comments?.comments}
+            />
+            <StatCard
+              label="エンゲージメント率"
+              value={formatEngagementRate(
+                video.statistics?.likeCount,
+                video.statistics?.commentCount,
+                video.statistics?.viewCount
+              )}
+              icon={<Users className="size-3.5" />}
+              note={comments?.engagement}
+            />
+          </div>
+
+          <SafeBoundary>
+            <PerformanceScoreboard video={video} analysis={analysis} />
+          </SafeBoundary>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="再生数"
-          value={formatCountJa(video.statistics?.viewCount)}
-          icon={<Eye className="size-3.5" />}
-        />
-        <StatCard
-          label="高評価"
-          value={formatCountJa(video.statistics?.likeCount)}
-          icon={<ThumbsUp className="size-3.5" />}
-        />
-        <StatCard
-          label="コメント"
-          value={formatCountJa(video.statistics?.commentCount)}
-          icon={<MessageCircle className="size-3.5" />}
-        />
-        <StatCard
-          label="エンゲージメント率"
-          value={formatEngagementRate(
-            video.statistics?.likeCount,
-            video.statistics?.commentCount,
-            video.statistics?.viewCount
-          )}
-          icon={<Users className="size-3.5" />}
-        />
-      </div>
-
-      <AiBuzzAnalyzer
-        input={{
-          videoId: video.id,
-          title: video.snippet?.title ?? "(無題)",
-          channelTitle: channelName,
-          description: video.snippet?.description ?? "",
-          tags: video.snippet?.tags ?? [],
-          duration: video.contentDetails?.duration ?? "",
-          publishedAt: video.snippet?.publishedAt ?? "",
-          viewCount: video.statistics?.viewCount,
-          likeCount: video.statistics?.likeCount,
-          commentCount: video.statistics?.commentCount,
+      <SafeBoundary>
+        <AiBuzzAnalyzer
+          input={{
+            videoId: video.id,
+            title: video.snippet?.title ?? "(無題)",
+            channelTitle: channelName,
+            description: video.snippet?.description ?? "",
+            tags: video.snippet?.tags ?? [],
+            duration: video.contentDetails?.duration ?? "",
+            publishedAt: video.snippet?.publishedAt ?? "",
+            viewCount: video.statistics?.viewCount,
+            likeCount: video.statistics?.likeCount,
+            commentCount: video.statistics?.commentCount,
           subscriberCount: channel?.statistics?.subscriberCount,
           channelVideoCount: channel?.statistics?.videoCount,
-          hiddenSubscribers: channel?.statistics?.hiddenSubscriberCount === true,
-        }}
-        onAnalysisChange={setAnalysis}
-      />
+          channelViewCount: channel?.statistics?.viewCount,
+            hiddenSubscribers: channel?.statistics?.hiddenSubscriberCount === true,
+          }}
+          onAnalysisChange={setAnalysis}
+        />
+      </SafeBoundary>
 
       <Card>
         <CardHeader>
           <CardTitle>深掘り指標</CardTitle>
           <CardDescription>再生数に対する反応の内訳です。</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-3">
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <p className="text-xs text-muted-foreground">高評価率</p>
+            <p className="text-xs text-zinc-400">高評価率</p>
             <p className="text-sm font-medium">
               {formatLikeRate(video.statistics?.likeCount, video.statistics?.viewCount)}
             </p>
+            <AiStatNote text={comments?.likeRate} />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">お気に入り</p>
+            <p className="text-xs text-zinc-400">お気に入り</p>
             <p className="text-sm font-medium">
               {formatCountJa(video.statistics?.favoriteCount)}
             </p>
+            <AiStatNote text={comments?.favorites} />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">カテゴリ ID</p>
+            <p className="text-xs text-zinc-400">カテゴリ ID</p>
             <p className="text-sm font-medium">{video.snippet?.categoryId ?? "-"}</p>
+            <AiStatNote text={comments?.category} />
           </div>
         </CardContent>
       </Card>
@@ -218,40 +263,43 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
             </Avatar>
             <div className="min-w-0">
               <p className="font-medium">{channelName}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-zinc-400">
                 {channel?.snippet?.customUrl ?? video.snippet?.channelId ?? "-"}
               </p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs text-zinc-400">
                 <Users className="size-3.5" />
                 登録者数
               </p>
               <p className="text-sm font-medium">{subscribers}</p>
+              <AiStatNote text={comments?.subscribers} />
             </div>
             <div>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs text-zinc-400">
                 <Video className="size-3.5" />
                 総動画数
               </p>
               <p className="text-sm font-medium">
                 {formatCountJa(channel?.statistics?.videoCount)}
               </p>
+              <AiStatNote text={comments?.videoCount} />
             </div>
             <div>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1 text-xs text-zinc-400">
                 <Eye className="size-3.5" />
                 チャンネル総再生数
               </p>
               <p className="text-sm font-medium">
                 {formatCountJa(channel?.statistics?.viewCount)}
               </p>
+              <AiStatNote text={comments?.channelViews} />
             </div>
           </div>
           {channel?.snippet?.description ? (
-            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+            <p className="whitespace-pre-wrap text-sm text-zinc-400">
               {channel.snippet.description}
             </p>
           ) : null}
@@ -273,14 +321,14 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div>
-            <p className="text-xs text-muted-foreground">説明文</p>
+            <p className="text-xs text-zinc-400">説明文</p>
             <p className="mt-1 whitespace-pre-wrap text-sm">
               {video.snippet?.description || "説明文はありません。"}
             </p>
           </div>
           <Separator />
           <div>
-            <p className="text-xs text-muted-foreground">タグ</p>
+            <p className="text-xs text-zinc-400">タグ</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {video.snippet?.tags && video.snippet.tags.length > 0 ? (
                 video.snippet.tags.map((tag, index) => (
@@ -289,7 +337,7 @@ export function VideoDetailView({ video }: { video: YoutubeVideo }) {
                   </Badge>
                 ))
               ) : (
-                <span className="text-sm text-muted-foreground">タグはありません。</span>
+                <span className="text-sm text-zinc-400">タグはありません。</span>
               )}
             </div>
           </div>

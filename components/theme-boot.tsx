@@ -2,11 +2,11 @@
 
 import { useEffect } from "react"
 
-import { applyTheme, getStoredTheme } from "@/lib/client-settings"
+import { applyTheme } from "@/lib/client-settings"
 
 export function ThemeBoot() {
   useEffect(() => {
-    applyTheme(getStoredTheme())
+    applyTheme("dark")
   }, [])
   return null
 }

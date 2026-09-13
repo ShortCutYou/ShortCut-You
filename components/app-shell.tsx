@@ -21,16 +21,16 @@ export function AppShell({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className={contentClassName}>
-        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b border-border/50 bg-background/70 px-4 backdrop-blur-sm md:px-6">
+      <SidebarInset className={contentClassName ?? "bg-zinc-950 text-zinc-100"}>
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-950/80 px-4 backdrop-blur-sm md:px-6">
           <SidebarTrigger className="-ml-1" />
           {heading ? (
             <>
               <Separator orientation="vertical" className="mr-1 h-5" />
               <div className="min-w-0 flex-1">
-                <h1 className="text-sm font-semibold text-foreground md:text-base">{heading}</h1>
+                <h1 className="text-sm font-semibold text-zinc-100 md:text-base">{heading}</h1>
                 {subheading ? (
-                  <p className="hidden truncate text-xs text-muted-foreground sm:block">
+                  <p className="hidden truncate text-xs text-zinc-400 sm:block">
                     {subheading}
                   </p>
                 ) : null}
@@ -44,7 +44,7 @@ export function AppShell({
         <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
           {children}
         </main>
-        <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border/50 px-4 py-3 text-xs text-muted-foreground md:px-8">
+        <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 px-4 py-3 text-xs text-zinc-400 md:px-8">
           <span>© ShortCutYou</span>
           <LegalLinks />
         </footer>

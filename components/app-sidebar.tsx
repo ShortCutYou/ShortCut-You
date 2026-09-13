@@ -32,7 +32,7 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   return (
-    <Sidebar>
+    <Sidebar className="border-zinc-800 bg-zinc-950 text-zinc-100">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -75,7 +75,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <div className="group-data-[collapsible=icon]:hidden px-3 pb-1">
-          <LegalLinks className="text-[11px] text-muted-foreground" />
+          <LegalLinks className="text-[11px] text-zinc-400" />
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -89,12 +89,12 @@ export function AppSidebar() {
                 <AvatarFallback>G</AvatarFallback>
               </Avatar>
               <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">ゲスト</span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate font-medium text-zinc-100">ゲスト</span>
+                <span className="truncate text-xs text-zinc-400">
                   v{APP_VERSION} · 設定
                 </span>
               </div>
-              <Settings className="ml-auto size-4 text-muted-foreground" />
+              <Settings className="ml-auto size-4 text-zinc-400" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -40,6 +40,7 @@ function parseInput(payload: unknown): AnalyzeVideoInput | null {
     commentCount: asString(body.commentCount) || undefined,
     subscriberCount: asString(body.subscriberCount) || undefined,
     channelVideoCount: asString(body.channelVideoCount) || undefined,
+    channelViewCount: asString(body.channelViewCount) || undefined,
     hiddenSubscribers: body.hiddenSubscribers === true,
   }
 }

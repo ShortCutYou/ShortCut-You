@@ -1,15 +1,12 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
-import { Check, Eye, EyeOff, Moon, Sun, Trash2 } from "lucide-react"
+import { Check, Eye, EyeOff, Trash2 } from "lucide-react"
 
 import {
-  applyTheme,
   getStoredGeminiApiKey,
-  getStoredTheme,
   getStoredYoutubeApiKey,
   saveApiKeys,
-  type AppTheme,
 } from "@/lib/client-settings"
 import { clearResearchHistory } from "@/lib/research-history"
 import { Button } from "@/components/ui/button"
@@ -69,14 +66,12 @@ function SecretField({
 export function SettingsView() {
   const [youtubeKey, setYoutubeKey] = useState("")
   const [geminiKey, setGeminiKey] = useState("")
-  const [theme, setTheme] = useState<AppTheme>("dark")
   const [saved, setSaved] = useState(false)
   const [cacheMessage, setCacheMessage] = useState<string | null>(null)
 
   useEffect(() => {
     setYoutubeKey(getStoredYoutubeApiKey())
     setGeminiKey(getStoredGeminiApiKey())
-    setTheme(getStoredTheme())
   }, [])
 
   function handleSave(event: FormEvent) {
@@ -84,11 +79,6 @@ export function SettingsView() {
     saveApiKeys(youtubeKey, geminiKey)
     setSaved(true)
     window.setTimeout(() => setSaved(false), 2800)
-  }
-
-  function handleTheme(next: AppTheme) {
-    setTheme(next)
-    applyTheme(next)
   }
 
   function handleClearHistory() {
@@ -105,7 +95,7 @@ export function SettingsView() {
       {saved ? (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-500/30 dark:text-emerald-200"
+          className="flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm text-emerald-200 ring-1 ring-emerald-500/30"
         >
           <Check className="size-4" />
           設定を保存しました
@@ -145,31 +135,6 @@ export function SettingsView() {
           </CardContent>
         </Card>
       </form>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>テーマ</CardTitle>
-          <CardDescription>このブラウザだけの表示設定です。</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant={theme === "dark" ? "default" : "outline"}
-            onClick={() => handleTheme("dark")}
-          >
-            <Moon data-icon="inline-start" />
-            ダーク
-          </Button>
-          <Button
-            type="button"
-            variant={theme === "light" ? "default" : "outline"}
-            onClick={() => handleTheme("light")}
-          >
-            <Sun data-icon="inline-start" />
-            ライト
-          </Button>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>

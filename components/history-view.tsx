@@ -54,8 +54,8 @@ export function HistoryView() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">リサーチ履歴</h2>
-          <p className="text-sm text-muted-foreground">{countLabel}</p>
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-100 md:text-2xl">リサーチ履歴</h2>
+          <p className="text-sm text-zinc-400">{countLabel}</p>
         </div>
         {entries.length > 0 ? (
           <Button type="button" variant="outline" size="sm" onClick={handleClear}>
@@ -86,7 +86,7 @@ export function HistoryView() {
             return (
               <Card
                 key={entry.id}
-                className="cursor-pointer transition-colors hover:bg-muted/30"
+                className="cursor-pointer transition-colors hover:bg-zinc-800/40"
                 onClick={() => router.push(`/history/${entry.id}`)}
               >
                 <CardHeader className="pb-2">

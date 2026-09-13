@@ -22,8 +22,7 @@ export function getStoredGeminiApiKey() {
 }
 
 export function getStoredTheme(): AppTheme {
-  if (!canUseStorage()) return "dark"
-  return window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
+  return "dark"
 }
 
 export function saveApiKeys(youtubeApiKey: string, geminiApiKey: string) {
@@ -32,10 +31,10 @@ export function saveApiKeys(youtubeApiKey: string, geminiApiKey: string) {
   window.localStorage.setItem(GEMINI_KEY, geminiApiKey.trim())
 }
 
-export function applyTheme(theme: AppTheme) {
+export function applyTheme(_theme: AppTheme = "dark") {
   if (!canUseStorage()) return
-  window.localStorage.setItem(THEME_KEY, theme)
-  document.documentElement.classList.toggle("dark", theme === "dark")
+  window.localStorage.setItem(THEME_KEY, "dark")
+  document.documentElement.classList.add("dark")
 }
 
 export function clientApiHeaders() {

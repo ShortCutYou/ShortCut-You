@@ -12,11 +12,11 @@ export function BrandLogo({ className }: { className?: string }) {
         <Clapperboard className="size-[18px] stroke-[2.25]" />
       </div>
       <div className="grid min-w-0 flex-1 text-left leading-none">
-        <span className="truncate font-brand text-[15px] tracking-tight text-sidebar-foreground">
+        <span className="truncate font-brand text-[15px] tracking-tight text-zinc-100">
           <span className="font-bold">Short</span>
           <span className="font-light">CutYou</span>
         </span>
-        <span className="mt-1.5 truncate text-xs tracking-widest text-muted-foreground">
+        <span className="mt-1.5 truncate text-xs tracking-widest text-zinc-400">
           ショート特化リサーチ
         </span>
       </div>

@@ -96,9 +96,18 @@ function escapeHtml(value: string) {
     .replace(/"/g, "&quot;")
 }
 
+function emphasisHtml(value: string) {
+  let used = false
+  return escapeHtml(value).replace(/\*\*([\s\S]+?)\*\*/g, (_, inner: string) => {
+    if (used) return inner
+    used = true
+    return `<strong>${inner}</strong>`
+  })
+}
+
 function listHtml(items: string[]) {
   if (items.length === 0) return "<p class='muted'>なし</p>"
-  return `<ol>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`
+  return `<ol>${items.map((item) => `<li>${emphasisHtml(item)}</li>`).join("")}</ol>`
 }
 
 function videoTableHtml(videos: YoutubeVideo[]) {
@@ -145,14 +154,14 @@ function analysisHtml(analysis: BuzzAnalysis) {
   const beatHtml = beats
     .map(
       (beat) =>
-        `<div class="beat"><strong>${escapeHtml(beat.label ?? "")}</strong><p>${escapeHtml(beat.detail ?? "")}</p></div>`
+        `<div class="beat"><strong>${emphasisHtml(beat.label ?? "")}</strong><p>${emphasisHtml(beat.detail ?? "")}</p></div>`
     )
     .join("")
 
   const ideaHtml = ideas
     .map(
       (idea) =>
-        `<div class="idea"><strong>${escapeHtml(idea.title ?? "")}</strong><p>${escapeHtml(idea.outline ?? "")}</p></div>`
+        `<div class="idea"><strong>${emphasisHtml(idea.title ?? "")}</strong><p>${emphasisHtml(idea.outline ?? "")}</p></div>`
     )
     .join("")
 
@@ -160,13 +169,38 @@ function analysisHtml(analysis: BuzzAnalysis) {
     <section>
       <h2>AIバズ要因分析</h2>
       <p class="muted">Gemini${analysis.model ? ` · ${escapeHtml(analysis.model)}` : ""}</p>
+      ${
+        analysis.performance
+          ? `<h3>パフォーマンス指標</h3>
+      <p>バズ・ポテンシャル: ${analysis.performance.buzzPotential}/100</p>
+      ${analysis.performance.metrics
+        .map(
+          (metric) =>
+            `<p>${escapeHtml(metric.label)}: ${metric.score}/100 — ${escapeHtml(metric.note ?? "")}</p>`
+        )
+        .join("")}`
+          : ""
+      }
+      <h3>数値のひとこと評価</h3>
+      ${
+        analysis.statComments
+          ? `<ul>
+        <li>再生数: ${escapeHtml(analysis.statComments.views ?? "")}</li>
+        <li>高評価: ${escapeHtml(analysis.statComments.likes ?? "")}</li>
+        <li>コメント: ${escapeHtml(analysis.statComments.comments ?? "")}</li>
+        <li>EG率: ${escapeHtml(analysis.statComments.engagement ?? "")}</li>
+        <li>高評価率: ${escapeHtml(analysis.statComments.likeRate ?? "")}</li>
+        <li>登録者: ${escapeHtml(analysis.statComments.subscribers ?? "")}</li>
+      </ul>`
+          : "<p class='muted'>なし</p>"
+      }
       <h3>総評</h3>
-      <p>${escapeHtml(analysis.summary ?? "")}</p>
+      <p>${emphasisHtml(analysis.summary ?? "")}</p>
       <h3>冒頭フックの分析</h3>
-      <p><strong>${escapeHtml(analysis.hook?.headline ?? "")}</strong></p>
-      <p>${escapeHtml(analysis.hook?.analysis ?? "")}</p>
-      <h3>構成の秘密</h3>
-      <p>${escapeHtml(analysis.structure?.secret ?? "")}</p>
+      <p><strong>${emphasisHtml(analysis.hook?.headline ?? "")}</strong></p>
+      <p>${emphasisHtml(analysis.hook?.analysis ?? "")}</p>
+      <h3>構成の型</h3>
+      <p>${emphasisHtml(analysis.structure?.secret ?? "")}</p>
       ${beatHtml}
       <h3>クリエイターへの示唆</h3>
       ${listHtml(analysis.creatorInsights ?? [])}
@@ -174,7 +208,7 @@ function analysisHtml(analysis: BuzzAnalysis) {
       ${listHtml(analysis.whyItGrew ?? [])}
       <h3>真似できるポイント</h3>
       ${listHtml(analysis.copyablePoints ?? [])}
-      <h3>企画の構成案</h3>
+      <h3>構成のフレームワーク</h3>
       ${ideaHtml || "<p class='muted'>なし</p>"}
     </section>
   `

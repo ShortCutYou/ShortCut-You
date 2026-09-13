@@ -1,4 +1,8 @@
 import { formatEngagementRate, formatIso8601Duration, formatLikeRate } from "@/lib/format-stats"
+import {
+  parsePerformanceFromGemini,
+  type PerformanceBoard,
+} from "@/lib/performance-score"
 
 export type AnalyzeVideoInput = {
   videoId: string
@@ -13,6 +17,7 @@ export type AnalyzeVideoInput = {
   commentCount?: string
   subscriberCount?: string
   channelVideoCount?: string
+  channelViewCount?: string
   hiddenSubscribers?: boolean
 }
 
@@ -30,25 +35,114 @@ export type BuzzAnalysis = {
   copyablePoints: string[]
   creatorInsights: string[]
   ideaTemplates: { title: string; outline: string }[]
+  performance?: PerformanceBoard
+  statComments?: StatComments
   source: "gemini"
   model: string
 }
 
+export type StatComments = {
+  views?: string
+  likes?: string
+  comments?: string
+  engagement?: string
+  likeRate?: string
+  favorites?: string
+  category?: string
+  subscribers?: string
+  videoCount?: string
+  channelViews?: string
+}
+
 const ANALYSIS_JSON_SHAPE = `{
-  "summary": "2-3文の総評",
-  "hook": { "headline": "冒頭フックの一言", "analysis": "冒頭1-3秒の分析" },
-  "structure": {
-    "secret": "構成の秘密の総論",
-    "beats": [{ "label": "0-3秒", "detail": "..." }, { "label": "中盤", "detail": "..." }, { "label": "結末", "detail": "..." }]
+  "summary": "この動画のタイトル語句と再生数・EG率を結び、アルゴリズム上なぜ伸びたかを2-3文。抽象語禁止",
+  "hook": {
+    "headline": "冒頭で使っている具体ワード/ギャップを一言で",
+    "analysis": "冒頭で置くギャップ/約束の型と、タイトル語句との対応。台本・秒割り禁止。要点1-2文"
   },
-  "whyItGrew": ["要因1", "要因2", "要因3"],
-  "copyablePoints": ["真似できる点1", "真似できる点2"],
-  "creatorInsights": ["示唆1", "示唆2", "示唆3"],
-  "ideaTemplates": [{ "title": "企画名", "outline": "構成案" }]
+  "structure": {
+    "secret": "この動画の構成テンプレ名（例: ギャップ提示→証拠の小出し→オチ逆転）。セリフ禁止",
+    "beats": [
+      { "label": "冒頭のフック構造", "detail": "最初に何のギャップ/約束を置く型か。要点1-2文。台本禁止" },
+      { "label": "中盤のテンポ", "detail": "情報の出し方・切替えの型。要点1-2文。台本禁止" },
+      { "label": "オチの抜け感", "detail": "回収・余韻・再視聴を誘う型。要点1-2文。台本禁止" },
+      { "label": "ジャンル転用", "detail": "別ジャンルでも同じ骨格で回すときの置き換え方。1-2文" }
+    ]
+  },
+  "whyItGrew": [
+    "アルゴリズム観点（再視聴/コメント誘発/完走）を数値と結び1文",
+    "心理学フックをタイトル語句から因果で1文",
+    "尺と維持トリックの因果を1文"
+  ],
+  "copyablePoints": [
+    "構成テンプレとして抜き出せる型を1つ、ジャンル非依存で",
+    "中盤のテンポの型を自分の題材に置き換える要点",
+    "オチ/余韻の型を転用するときの注意点"
+  ],
+  "creatorInsights": [
+    "この骨格を自分のジャンルに当てはめるときの置換表（題材だけ変える）",
+    "型を崩すと失う要素（フック/テンポ/抜け）",
+    "次の企画で同じフレームワークを使う判断基準"
+  ],
+  "ideaTemplates": [
+    {
+      "title": "構成テンプレ名（例: 常識否定→根拠3拍→逆転）",
+      "outline": "フック/中盤/オチの役割を3行以内の要点。セリフ・秒数台本は禁止。自分のジャンルへの当てはめ方を1文"
+    },
+    {
+      "title": "別の切り口のテンプレ名",
+      "outline": "同じ骨格の応用バリエーション。台本禁止、要点のみ"
+    }
+  ],
+  "performance": {
+    "buzzPotential": 0,
+    "momentum": { "score": 0, "note": "初動の根拠を1文" },
+    "retention": { "score": 0, "note": "視聴維持の根拠を1文" },
+    "ctr": { "score": 0, "note": "タイトル/サムネのクリック率の根拠を1文" }
+  },
+  "statComments": {
+    "views": "再生規模のひとこと(20-30字)",
+    "likes": "高評価のひとこと(20-30字)",
+    "comments": "コメントのひとこと(20-30字)",
+    "engagement": "EG率のひとこと(20-30字)",
+    "likeRate": "高評価率のひとこと(20-30字)",
+    "favorites": "お気に入りのひとこと(20-30字)",
+    "category": "カテゴリのひとこと(20-30字)",
+    "subscribers": "登録者規模のひとこと(20-30字)",
+    "videoCount": "投稿本数のひとこと(20-30字)",
+    "channelViews": "チャンネル総再生のひとこと(20-30字)"
+  }
 }`
 
 function asText(value: unknown) {
-  return typeof value === "string" ? value.trim() : ""
+  if (typeof value === "string") return value.trim()
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  return ""
+}
+
+function asShortComment(value: unknown) {
+  const text = asText(value).replace(/\s+/g, " ")
+  if (!text) return ""
+  return text.length > 40 ? `${text.slice(0, 40)}…` : text
+}
+
+function parseStatComments(parsed: Record<string, unknown>): StatComments | undefined {
+  const raw = parsed.statComments
+  if (!raw || typeof raw !== "object") return undefined
+  const source = raw as Record<string, unknown>
+  const comments: StatComments = {
+    views: asShortComment(source.views),
+    likes: asShortComment(source.likes),
+    comments: asShortComment(source.comments),
+    engagement: asShortComment(source.engagement),
+    likeRate: asShortComment(source.likeRate),
+    favorites: asShortComment(source.favorites),
+    category: asShortComment(source.category),
+    subscribers: asShortComment(source.subscribers),
+    videoCount: asShortComment(source.videoCount),
+    channelViews: asShortComment(source.channelViews),
+  }
+  return Object.values(comments).some(Boolean) ? comments : undefined
 }
 
 function asTextList(value: unknown) {
@@ -109,6 +203,14 @@ function normalizeAnalysis(parsed: Record<string, unknown>, model: string): Buzz
     copyablePoints: asTextList(parsed.copyablePoints),
     creatorInsights: asTextList(parsed.creatorInsights),
     ideaTemplates,
+    performance: (() => {
+      try {
+        return parsePerformanceFromGemini(parsed)
+      } catch {
+        return undefined
+      }
+    })(),
+    statComments: parseStatComments(parsed),
     source: "gemini",
     model,
   }
@@ -137,9 +239,19 @@ function buildPrompt(input: AnalyzeVideoInput) {
     ? "非公開"
     : (input.subscriberCount ?? "-")
 
-  return `あなたはYouTubeショート特化のリサーチアナリストです。
-以下の実データを根拠に、この動画がなぜ伸びたかを日本語で具体的に分析してください。
-一般論の使い回しではなく、タイトルと数値の関係に触れてください。
+  return `あなたはYouTubeショート特化のシニアグロースアナリストです。
+視聴者心理と推薦アルゴリズムの両方に通じた専門家として、この1本だけを解剖してください。
+
+【姿勢】
+- 見たままの感想・一般論・テンプレ激励は禁止。
+- 「共感を呼ぶ」「世界観が強い」「バズりやすい構成」など検証不能な抽象語は禁止。使うなら、構成の型の名前と役割で言い換える。
+- 必ず因果を書く。タイトル語句と尺・EG率が、どの構成の型を支えているかを結びつける。
+- ショート特有の観点を本文に必ず埋め込む:
+  1) アルゴリズムハック（完走、ループ再視聴、保存、コメント誘発、セッション継続）
+  2) 視聴維持のトリック（オープンループ、パターンインタラプト、情報の小出し、視覚的変化）
+  3) 心理学的フック（好奇心ギャップ、認知不協和、社会的証明、損失回避、アイデンティティ）
+- 「0-1秒: 画面〇〇、セリフ〇〇」のような台本・秒割り書き出しは禁止。構成は型と役割の要点まとめにする。
+- 映像を直接は見ていない。タイトル・説明・タグ・尺・公開数値から推論し、根拠を数値か語句で示す。
 
 【必須で使う数値】
 - タイトル: ${input.title}
@@ -151,18 +263,38 @@ function buildPrompt(input: AnalyzeVideoInput) {
 - 高評価率: ${likeRate}
 - チャンネル登録者数: ${subscribers}
 - チャンネル総動画数: ${input.channelVideoCount ?? "-"}
+- チャンネル総再生数: ${input.channelViewCount ?? "-"}
 - 尺: ${duration}
 - 公開日: ${input.publishedAt || "-"}
 - タグ: ${(input.tags ?? []).slice(0, 12).join(", ") || "なし"}
 - 説明文: ${(input.description ?? "").slice(0, 500) || "なし"}
 
-次の4点を必ず含めてください。
-1. 冒頭フックの分析
-2. 構成の秘密
-3. クリエイターへの示唆
-4. なぜ伸びたのか
+出力はJSONのみ。前置きやコードフェンスは禁止。
+JSONの外にMarkdownを書かないこと。
 
-出力はJSONのみ。前置きやマークダウンは禁止。
+【強調（必須・拾い読み用）】
+各文字列（1つの段落、または配列の1要素）につき、Markdown の **太字** は **最も核心のキーワード1箇所だけ**。
+秒数・セリフ・アルゴリズム用語が複数あっても、一番のポイント1語（または最短フレーズ）だけを囲む。
+2箇所以上の太字は禁止。全部を太字にしない。囲まない部分は通常の文章のまま。
+
+【フィールド別の深さ】
+- hook.analysis: 冒頭で置くギャップ/約束の型。秒割り台本は書かない。
+- structure.beats: 4拍。labelは「冒頭のフック構造」「中盤のテンポ」「オチの抜け感」「ジャンル転用」。detailは要点1-2文。セリフ禁止。
+- whyItGrew: 3件以上。うち1件はアルゴリズム、1件は心理フック、1件は構成の型。
+- copyablePoints: 3件以上。撮影台本ではなく、構成テンプレの抜き出しと転用手順。
+- creatorInsights: 自分のジャンルへ骨格を当てはめる置換の仕方。心構えだけの文は不可。
+- ideaTemplates: 2件。titleはテンプレ名。outlineはフック/中盤/オチの役割と転用の要点のみ。台本・秒数書き出し禁止。
+- performance と statComments: 実数に触れ、ショートとしての良し悪しを短く。
+
+次の6点を必ず含めてください。
+1. 冒頭フックの分析（構造の型）
+2. 構成のフレームワーク（フック/テンポ/オチ/転用）
+3. クリエイターへの示唆（ジャンル転用）
+4. なぜ伸びたのか（アルゴリズム×心理×型）
+5. performance スコア（0-100の整数）
+   - buzzPotential / momentum / retention / ctr
+   各scoreのnoteはこの動画の数値に触れる。
+6. statComments（各20〜30文字、実数に触れる）
 ${ANALYSIS_JSON_SHAPE}`
 }
 

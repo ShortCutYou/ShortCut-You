@@ -70,14 +70,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`dark ${geistSans.variable} ${geistMono.variable} ${outfit.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("shortcutyou.theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}`,
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
         <ThemeBoot />
         <TooltipProvider>{children}</TooltipProvider>
       </body>

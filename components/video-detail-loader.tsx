@@ -70,10 +70,16 @@ export function VideoDetailLoader({ videoId }: { videoId: string }) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
         <Skeleton className="h-8 w-40" />
-        <Skeleton className="aspect-video w-full rounded-xl" />
-        <Skeleton className="h-24 w-full" />
+        <div className="grid gap-5 lg:grid-cols-[minmax(240px,2fr)_minmax(0,3fr)]">
+          <Skeleton className="aspect-[4/5] w-full rounded-xl lg:min-h-96" />
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-40 w-full rounded-xl" />
+          </div>
+        </div>
       </div>
     )
   }
